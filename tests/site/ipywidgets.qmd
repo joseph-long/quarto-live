@@ -1,0 +1,54 @@
+---
+title: "ipywidgets Test"
+format: live-html
+pyodide:
+  packages:
+    - ipywidgets
+---
+
+## Slider
+
+```{pyodide}
+#| autorun: true
+#| edit: false
+import ipywidgets as widgets
+slider = widgets.IntSlider(value=5, min=0, max=10, description='x:')
+display(slider)
+```
+
+## Interact
+
+```{pyodide}
+#| autorun: true
+#| edit: false
+from ipywidgets import interact
+
+def square(x=5):
+    print(f"x = {x}, x² = {x**2}")
+
+interact(square, x=(0, 10))
+```
+
+## Linked sliders
+
+```{pyodide}
+#| autorun: true
+#| edit: false
+import ipywidgets as widgets
+a = widgets.IntSlider(description='a')
+b = widgets.IntSlider(description='b')
+widgets.link((a, 'value'), (b, 'value'))
+display(widgets.VBox([a, b]))
+```
+
+## Output widget
+
+```{pyodide}
+#| autorun: true
+#| edit: false
+import ipywidgets as widgets
+out = widgets.Output()
+with out:
+    print("captured output")
+display(out)
+```

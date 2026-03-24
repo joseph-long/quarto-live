@@ -1,0 +1,58 @@
+---
+title: "OJS Define Test"
+format: live-html
+pyodide:
+  packages:
+    - numpy
+---
+
+## Python to OJS define
+
+```{pyodide}
+#| edit: false
+#| output: false
+#| define:
+#|   - spiral_data
+import numpy as np
+
+t = np.linspace(0, 4 * np.pi, 200)
+spiral_data = [{"x": float(t_i * np.cos(t_i)), "y": float(t_i * np.sin(t_i))} for t_i in t]
+```
+
+```{ojs}
+//| echo: false
+Plot.plot({
+  marks: [Plot.line(spiral_data, {x: "x", y: "y", stroke: "steelblue", strokeWidth: 2})],
+  width: 400,
+  height: 400
+})
+```
+
+## Round-trip OJS to Python to OJS
+
+```{ojs}
+//| echo: false
+viewof n_sides = Inputs.range([3, 12], {step: 1, value: 5, label: "Sides"})
+```
+
+```{pyodide}
+#| edit: false
+#| output: false
+#| input:
+#|   - n_sides
+#| define:
+#|   - polygon_points
+import numpy as np
+
+angles = np.linspace(0, 2 * np.pi, int(n_sides) + 1)
+polygon_points = [{"x": float(np.cos(a)), "y": float(np.sin(a))} for a in angles]
+```
+
+```{ojs}
+//| echo: false
+Plot.plot({
+  marks: [Plot.line(polygon_points, {x: "x", y: "y", stroke: "steelblue", strokeWidth: 2})],
+  width: 300,
+  height: 300
+})
+```

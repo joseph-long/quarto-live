@@ -1,0 +1,47 @@
+---
+title: "OJS Inputs Test"
+format: live-html
+pyodide:
+  packages:
+    - matplotlib
+    - numpy
+---
+
+## Slider to matplotlib
+
+```{ojs}
+//| echo: false
+viewof num_points = Inputs.range([10, 200], {step: 10, value: 50, label: "Points"})
+```
+
+```{pyodide}
+#| input:
+#|   - num_points
+#| edit: false
+import matplotlib.pyplot as plt
+import numpy as np
+
+np.random.seed(42)
+x = np.random.randn(int(num_points))
+y = np.random.randn(int(num_points))
+
+fig, ax = plt.subplots(figsize=(6, 4))
+ax.scatter(x, y, alpha=0.6)
+ax.set_title(f"{int(num_points)} points")
+plt.tight_layout()
+plt.show()
+```
+
+## Dropdown
+
+```{ojs}
+//| echo: false
+viewof color_choice = Inputs.select(["red", "green", "blue"], {label: "Color", value: "red"})
+```
+
+```{pyodide}
+#| input:
+#|   - color_choice
+#| edit: false
+print(f"Selected color: {color_choice}")
+```
