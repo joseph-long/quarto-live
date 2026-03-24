@@ -11,6 +11,7 @@ declare global {
 
 export type PyodideWorker = {
   init: typeof init;
+  registerCommCallback: typeof registerCommCallback;
 }
 
 export type PyodideAPIWorker = PyodideAPI & {
@@ -45,4 +46,19 @@ async function init(options) {
   return Comlink.proxy(self.pyodide);
 }
 
-Comlink.expose({ init });
+// Comm bridge: stores a callback from the main thread that receives
+// comm messages from Python. The callback is called by _sendCommMessage
+// which is exposed on the worker global for Python to invoke.
+let _commCallback: ((msgType: string, contentJson: string, metadataJson: string) => void) | null = null;
+
+function registerCommCallback(callback: (msgType: string, contentJson: string, metadataJson: string) => void) {
+  _commCallback = callback;
+  // Expose a function on the worker global that Python can call via `from js import _sendCommMessage`
+  (self as any)._sendCommMessage = (msgType: string, contentJson: string, metadataJson: string) => {
+    if (_commCallback) {
+      _commCallback(msgType, contentJson, metadataJson);
+    }
+  };
+}
+
+Comlink.expose({ init, registerCommCallback });

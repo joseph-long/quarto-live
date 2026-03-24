@@ -1,6 +1,4 @@
-import { test, expect } from '@playwright/test';
-
-const PYODIDE_TIMEOUT = 90_000;
+import { test, expect, PYODIDE_TIMEOUT } from './fixtures';
 
 test.describe('Pyodide basic execution', () => {
   test.beforeEach(async ({ page }) => {

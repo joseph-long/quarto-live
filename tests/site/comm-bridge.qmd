@@ -1,0 +1,24 @@
+---
+title: "Comm Bridge Test"
+format: live-html
+pyodide:
+  packages:
+    - comm
+---
+
+## Comm bridge test
+
+This page tests that the Python-to-JavaScript comm bridge works by
+creating a comm, opening it, and sending a message using the raw
+`comm` module (no ipywidgets dependency).
+
+```{pyodide}
+#| autorun: true
+import comm
+
+# Pass data to constructor (matches ipywidgets pattern)
+# BaseComm constructor auto-opens, so no explicit open() needed
+c = comm.create_comm(target_name="test_target", data={"msg": "hello from python"})
+c.send(data={"count": 42})
+print("comm messages sent")
+```

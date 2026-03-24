@@ -3,6 +3,7 @@ pyodideOjs = {
     PyodideEvaluator,
     PyodideEnvironmentManager,
     setupPython,
+    setupCommBridge,
     startPyodideWorker,
     b64Decode,
     collapsePath,
@@ -39,7 +40,7 @@ pyodideOjs = {
 
   let pyodidePromise = (async () => {
     statusText.textContent = `Downloading Pyodide`;
-    const pyodide = await startPyodideWorker(data.options);
+    const { pyodide, pyodideWorker } = await startPyodideWorker(data.options);
 
     statusText.textContent = `Downloading package: micropip`;
     await pyodide.loadPackage("micropip");
@@ -98,6 +99,9 @@ pyodideOjs = {
 
     statusText.textContent = `Pyodide environment setup`;
     await setupPython(pyodide);
+
+    // Set up comm bridge for ipywidgets
+    await setupCommBridge(pyodide, pyodideWorker);
 
     statusText.remove();
     if (statusContainer.children.length == 0) {
