@@ -18,6 +18,7 @@ local block_id = 0
 
 local include_webr = false
 local include_pyodide = false
+local needs_ipywidgets = false
 
 local function json_as_b64(obj)
   local json_string = quarto.json.encode(obj)
@@ -189,6 +190,11 @@ function PyodideCodeBlock(code)
 
   -- Parse codeblock contents for YAML header and Python code body
   local block = ParseBlock(code, "pyodide")
+
+  -- Detect ipywidgets usage in code
+  if (string.find(block.code, "ipywidgets") or string.find(block.code, "from ipywidgets")) then
+    needs_ipywidgets = true
+  end
 
   if (block.attr.output == "asis") then
     quarto.log.warning(
@@ -524,6 +530,22 @@ function setupPyodide(doc)
   }
   for _, pkg in pairs(packages) do
     table.insert(pyodide_packages.pkgs, pandoc.utils.stringify(pkg))
+  end
+
+  -- Auto-add ipywidgets and comm packages when widget code is detected
+  if (needs_ipywidgets) then
+    local has_ipywidgets = false
+    local has_comm = false
+    for _, pkg in pairs(pyodide_packages.pkgs) do
+      if pkg == "ipywidgets" then has_ipywidgets = true end
+      if pkg == "comm" then has_comm = true end
+    end
+    if not has_ipywidgets then
+      table.insert(pyodide_packages.pkgs, "ipywidgets")
+    end
+    if not has_comm then
+      table.insert(pyodide_packages.pkgs, "comm")
+    end
   end
 
   -- Initial Pyodide startup options
