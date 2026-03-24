@@ -1,0 +1,22 @@
+---
+title: "Pyodide Basic Test"
+format: live-html
+pyodide:
+  packages:
+    - numpy
+---
+
+## Print output
+
+```{pyodide}
+#| autorun: true
+import numpy as np
+x = np.linspace(0, 2 * np.pi, 10)
+print(f"sin(0) = {np.sin(x[0]):.4f}")
+```
+
+## Editable block
+
+```{pyodide}
+print("hello from pyodide")
+```
