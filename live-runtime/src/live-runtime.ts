@@ -10,6 +10,7 @@ import { WebRGrader } from './grader-webr';
 import { PyodideGrader } from './grader-pyodide';
 import { comlinkTransfer, imageBitmapTransfer, mapTransfer, proxyTransfer } from './pyodide-proxy';
 import { b64Encode, b64Decode, collapsePath } from './utils';
+import { handleCommMessage, setSendToPython } from './widget-manager';
 import './css/live-runtime.css';
 import './css/highlighting.css';
 import './css/reveal.css';
@@ -62,6 +63,8 @@ async function setupCommBridge(
       };
       // Store messages globally for inspection/testing
       ((window as any).__quarto_live_comms ??= []).push(msg);
+      // Route comm messages to widget manager for live rendering
+      handleCommMessage(msg);
       if (onCommMessage) {
         onCommMessage(msg);
       }
@@ -83,6 +86,11 @@ except Exception as _e:
   } catch {
     // comm package not available, bridge not initialized
   }
+
+  // Set up reverse direction: JS→Python comm messages
+  setSendToPython((commId: string, dataJson: string) => {
+    pyodideWorker.sendCommMsgToPython(commId, dataJson);
+  });
 }
 
 async function startPyodideWorker(options) {

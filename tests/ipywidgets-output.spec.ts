@@ -6,8 +6,9 @@ test.describe('ipywidgets Output widget', () => {
   });
 
   test('Output widget renders captured print output', async ({ page }) => {
-    const outputSection = page.locator('#output-widget').locator('~ *');
-    const output = outputSection.locator('.widget-output, .jupyter-widgets-output-area').first();
+    const outputSection = page.locator('section#output-widget');
+    // The Output widget renders captured text. Look for the text in the section.
+    const output = outputSection.locator('.widget-output, .cell-output-pyodide').first();
     await expect(output).toBeVisible({ timeout: PYODIDE_TIMEOUT });
     await expect(output).toContainText('captured output');
   });

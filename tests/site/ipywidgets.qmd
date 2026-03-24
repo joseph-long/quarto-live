@@ -4,6 +4,7 @@ format: live-html
 pyodide:
   packages:
     - ipywidgets
+    - comm
 ---
 
 ## Slider

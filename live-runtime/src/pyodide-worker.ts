@@ -12,6 +12,7 @@ declare global {
 export type PyodideWorker = {
   init: typeof init;
   registerCommCallback: typeof registerCommCallback;
+  sendCommMsgToPython: typeof sendCommMsgToPython;
 }
 
 export type PyodideAPIWorker = PyodideAPI & {
@@ -61,4 +62,13 @@ function registerCommCallback(callback: (msgType: string, contentJson: string, m
   };
 }
 
-Comlink.expose({ init, registerCommCallback });
+async function sendCommMsgToPython(commId: string, dataJson: string) {
+  self.pyodide.globals.set('_comm_id', commId);
+  self.pyodide.globals.set('_data_json', dataJson);
+  await self.pyodide.runPythonAsync(`
+from widget_comm import receive_comm_msg
+receive_comm_msg(_comm_id, _data_json)
+  `);
+}
+
+Comlink.expose({ init, registerCommCallback, sendCommMsgToPython });

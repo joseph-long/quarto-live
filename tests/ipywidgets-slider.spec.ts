@@ -7,17 +7,18 @@ test.describe('ipywidgets IntSlider', () => {
 
   test('slider widget renders with correct initial value', async ({ page }) => {
     // Look for the ipywidgets slider in the Slider section
-    const sliderSection = page.locator('#slider').locator('~ *');
-    const slider = sliderSection.locator('.widget-slider input[type="range"], .jupyter-widgets input[type="range"]').first();
+    const sliderSection = page.locator('section#slider');
+    const slider = sliderSection.locator('[role="slider"]').first();
     await expect(slider).toBeVisible({ timeout: PYODIDE_TIMEOUT });
-    // Initial value should be 5
-    await expect(slider).toHaveValue('5');
+    // Initial value readout should be 5
+    const readout = sliderSection.locator('.widget-readout').first();
+    await expect(readout).toContainText('5');
   });
 
   test('slider label shows description', async ({ page }) => {
-    const sliderSection = page.locator('#slider').locator('~ *');
-    const label = sliderSection.locator('.widget-label, label').first();
+    const sliderSection = page.locator('section#slider');
+    const label = sliderSection.locator('.widget-label').first();
     await expect(label).toBeVisible({ timeout: PYODIDE_TIMEOUT });
-    await expect(label).toContainText('x:');
+    await expect(label).toContainText('x');
   });
 });

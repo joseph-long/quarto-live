@@ -11,6 +11,7 @@ import {
 } from "./evaluate";
 import { PyodideAPIWorker } from './pyodide-worker';
 import { loadScriptAsync, replaceScriptChildren, b64Decode } from './utils';
+import { getWidgetManager } from './widget-manager';
 
 import AnsiConvert from 'ansi-to-html';
 
@@ -268,34 +269,24 @@ export class PyodideEvaluator implements ExerciseEvaluator {
     }
 
     const appendJupyterWidget = async (widget: PyProxy) => {
-      // TODO: Hook this up to the running Python process for reactivity
-      // c.f. https://github.com/jupyter-widgets/ipywidgets/tree/main/examples/web3
-      const state = await this.pyodide.runPythonAsync(`
-        import ipywidgets as widgets
-        import json
-        json.dumps(widgets.Widget.get_manager_state())
-      `)
-
-      if (!stateElement) {
-        stateElement = document.createElement('script');
-        stateElement.type = "application/vnd.jupyter.widget-state+json";
-        stateElement = document.body.appendChild(stateElement);
-        await loadScriptAsync("https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@1.0.11/dist/embed.js");
-      }
-      stateElement.innerHTML = state;
-
+      // Convert widget view JSON (Python dict) to JS to get model_id
       const locals = await this.pyodide.toPy({ widget });
       const widgetJson = await this.pyodide.runPythonAsync(`
         import json
         json.dumps(widget)
       `, { locals });
       locals.destroy();
-      const widgetElement = document.createElement('script');
-      widgetElement.type = "application/vnd.jupyter.widget-view+json"
-      widgetElement.innerHTML = widgetJson;
-      container.appendChild(widgetElement);
+      const widgetData = JSON.parse(widgetJson);
 
-      dispatchEvent(new Event('load'));
+      const outputDiv = document.createElement("div");
+      outputDiv.className = "cell-output-display cell-output-pyodide jupyter-widgets";
+
+      const manager = getWidgetManager();
+      await manager.renderWidget(widgetData.model_id, outputDiv);
+
+      if (options.output) {
+        container.appendChild(outputDiv);
+      }
     }
 
     const appendPlotlyFigure = async (figure: PyProxy) => {
@@ -383,19 +374,19 @@ export class PyodideEvaluator implements ExerciseEvaluator {
       if (imagebitmap) {
         appendImageBitmap(imagebitmap);
       } else if (html) {
-        appendHtml(html);
+        await appendHtml(html);
       } else if (widget) {
-        appendJupyterWidget(widget);
+        await appendJupyterWidget(widget);
       } else if (plotly) {
-        appendPlotlyFigure(plotly);
+        await appendPlotlyFigure(plotly);
       } else if (png) {
-        appendDataUrlImage("image/png", png);
+        await appendDataUrlImage("image/png", png);
       } else if (jpeg) {
-        appendDataUrlImage("image/jpeg", jpeg);
+        await appendDataUrlImage("image/jpeg", jpeg);
       } else if (gif) {
-        appendDataUrlImage("image/gif", gif);
+        await appendDataUrlImage("image/gif", gif);
       } else if (svg) {
-        appendHtml(svg);
+        await appendHtml(svg);
       } else if (plain) {
         appendPlainText(plain);
       }
