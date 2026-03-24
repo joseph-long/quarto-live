@@ -88,6 +88,11 @@ def _patch_output_widget():
     routing to capture output. In Pyodide there is no kernel, so we
     monkey-patch __enter__/__exit__/clear_output to capture stdout
     and update self.outputs directly.
+
+    The interact() function calls IPython.display.clear_output(wait=True)
+    inside `with self.out:` to replace output on each interaction. We
+    track this via a _quarto_pending_clear flag so _exit replaces outputs
+    instead of appending.
     """
     import sys
     from io import StringIO
@@ -97,14 +102,21 @@ def _patch_output_widget():
     except ImportError:
         return
 
+    # Track which Output widget context is active (stack for nesting)
+    _active_output_stack = []
+
     def _clear_output(self, wait=False):
-        self.outputs = ()
+        if wait:
+            self._quarto_pending_clear = True
+        else:
+            self.outputs = ()
 
     def _enter(self):
         if not hasattr(self, '_quarto_captures'):
             self._quarto_captures = []
         self._quarto_captures.append(sys.stdout)
         sys.stdout = StringIO()
+        _active_output_stack.append(self)
         return self
 
     def _exit(self, etype, evalue, tb):
@@ -112,12 +124,50 @@ def _patch_output_widget():
             return None
         captured = sys.stdout.getvalue() if hasattr(sys.stdout, 'getvalue') else ''
         sys.stdout = self._quarto_captures.pop()
-        if captured.strip():
-            self.outputs = self.outputs + (
-                {'output_type': 'stream', 'name': 'stdout', 'text': captured},
-            )
+        if _active_output_stack and _active_output_stack[-1] is self:
+            _active_output_stack.pop()
+        if getattr(self, '_quarto_pending_clear', False):
+            self._quarto_pending_clear = False
+            if captured.strip():
+                self.outputs = (
+                    {'output_type': 'stream', 'name': 'stdout', 'text': captured},
+                )
+            else:
+                self.outputs = ()
+        else:
+            if captured.strip():
+                self.outputs = self.outputs + (
+                    {'output_type': 'stream', 'name': 'stdout', 'text': captured},
+                )
         return True
 
     ipywidgets.Output.clear_output = _clear_output
     ipywidgets.Output.__enter__ = _enter
     ipywidgets.Output.__exit__ = _exit
+
+    # Patch IPython.display.clear_output to work with our Output widgets.
+    # interact() calls this function (not self.out.clear_output) inside
+    # `with self.out:`, so it must route to the active Output widget.
+    try:
+        import IPython.display as _ipy_display
+        _original_clear_output = _ipy_display.clear_output
+
+        def _patched_clear_output(wait=False):
+            if _active_output_stack:
+                _active_output_stack[-1].clear_output(wait=wait)
+            else:
+                _original_clear_output(wait=wait)
+
+        _ipy_display.clear_output = _patched_clear_output
+
+        # Also patch the reference in ipywidgets.widgets.interaction, which
+        # imports clear_output at module level via `from IPython.display import
+        # clear_output`. Python's import creates a local binding that isn't
+        # affected by patching the original module.
+        try:
+            import ipywidgets.widgets.interaction as _interaction
+            _interaction.clear_output = _patched_clear_output
+        except (ImportError, AttributeError):
+            pass
+    except ImportError:
+        pass

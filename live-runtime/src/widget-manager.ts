@@ -37,6 +37,15 @@ export class WidgetComm implements IClassicComm {
     if (_sendToPython) {
       _sendToPython(this.comm_id, JSON.stringify(data));
     }
+    // Simulate kernel status acknowledgment to release the widget model's
+    // message throttle. Without this, _pending_msgs increments on the first
+    // send and never decrements, causing all subsequent messages to be
+    // silently buffered. Deferred via microtask so it runs after
+    // send_sync_message increments _pending_msgs.
+    if (callbacks?.iopub?.status) {
+      const cb = callbacks.iopub.status;
+      queueMicrotask(() => cb({ content: { execution_state: 'idle' } }));
+    }
     return this.comm_id;
   }
 
